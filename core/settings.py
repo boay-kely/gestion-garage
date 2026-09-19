@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,17 +22,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-m-#6^q-waa+_-ji4su^wb@zjk7^b&sg6i^_um27!0_^rkdky_%'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-m-#6^q-waa+_-ji4su^wb@zjk7^b&sg6i^_um27!0_^rkdky_%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['gestion-garage-tha2.onrender.com', '127.0.0.1', 'localhost', '*']
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://gestion-garage-tha2.onrender.com',
     'https://gestion-garages.loca.lt',
     'https://*.local.lt',
 ]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -74,18 +77,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Database configuration
+# Priorité aux variables d'environnement Render (DB_HOST, DB_USER, etc.), sinon fallback local.
+
+db_user = os.getenv('DB_USER', 'postgres')
+db_password = os.getenv('DB_PASSWORD', '')
+db_host = os.getenv('DB_HOST', 'localhost')
+db_port = os.getenv('DB_PORT', '5432')
+db_name = os.getenv('DB_NAME', 'garage_db')
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'garage_db',
-        'USER': 'postgres',                    # Votre nom d'utilisateur PostgreSQL
-        'PASSWORD': '',      # Votre mot de passe PostgreSQL local
-        'HOST': 'localhost',                   # Ou '127.0.0.1'
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}",
+        conn_max_age=600
+    )
 }
 
 
