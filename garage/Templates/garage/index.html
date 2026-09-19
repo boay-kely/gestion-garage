@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garage - Dashboard</title>
+    <link rel="stylesheet" href="{% static 'garage/style.css' %}">
+</head>
+<body>
+
+    <header>
+        <h1>Gestion de Garage</h1>
+        <span>PostgreSQL Local</span>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total Clients</h3>
+            <p>{{ total_clients }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Véhicules</h3>
+            <p>{{ total_vehicules }}</p>
+        </div>
+    </div>
+
+    <!-- Section Formulaires -->
+    <div class="forms-grid">
+        <!-- Formulaire Client -->
+        <div class="content-card">
+            <h2>Nouveau Client</h2>
+            <form method="POST">
+                {% csrf_token %}
+                {{ client_form.as_p }}
+                <button type="submit" name="add_client" class="btn">Ajouter Client</button>
+            </form>
+        </div>
+
+        <!-- Formulaire Véhicule -->
+        <div class="content-card">
+            <h2>Nouveau Véhicule</h2>
+            <form method="POST">
+                {% csrf_token %}
+                {{ vehicule_form.as_p }}
+                <button type="submit" name="add_vehicule" class="btn">Ajouter Véhicule</button>
+            </form>
+        </div>
+
+        <!-- Formulaire Réparation -->
+        <div class="content-card">
+            <h2>Nouvelle Réparation</h2>
+            <form method="POST">
+                {% csrf_token %}
+                {{ reparation_form.as_p }}
+                <button type="submit" name="add_reparation" class="btn">Ajouter Réparation</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tableau des réparations -->
+    <div class="content-card margin-top">
+        <h2>Réparations en cours</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Véhicule</th>
+                    <th>Description</th>
+                    <th>Statut</th>
+                    <th>Coût (€)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rep in reparations %}
+                <tr>
+                    <td>{{ rep.vehicule }}</td>
+                    <td>{{ rep.description }}</td>
+                    <td><span class="badge {{ rep.statut }}">{{ rep.get_statut_display }}</span></td>
+                    <td>{{ rep.cout }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">Aucune réparation enregistrée.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
