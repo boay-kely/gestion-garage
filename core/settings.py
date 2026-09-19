@@ -26,12 +26,7 @@ SECRET_KEY = 'django-insecure-m-#6^q-waa+_-ji4su^wb@zjk7^b&sg6i^_um27!0_^rkdky_%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    'gestion-garages.loca.lt',
-    '.loca.lt',
-]
+ALLOWED_HOSTS = ['gestion-garage-tha2.onrender.com', '127.0.0.1', 'localhost', '*']
 
 CSRF_TRUSTED_ORIGINS = [
     'https://gestion-garages.loca.lt',
