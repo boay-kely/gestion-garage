@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garage Pro - Gestion Réparations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+        .sidebar { min-height: 100vh; background-color: #1e293b; color: #fff; }
+        .sidebar a { color: #cbd5e1; text-decoration: none; padding: 12px 20px; display: block; border-radius: 6px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: #334155; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+        <div class="col-md-3 col-lg-2 sidebar p-3">
+            <h4 class="text-white text-center mb-4"><i class="fa-solid fa-gauge-high me-2"></i>Garage Pro</h4>
+            <hr class="text-secondary">
+            <nav>
+                <a href="{% url 'index' %}"><i class="fa-solid fa-chart-line me-2"></i> Tableau de bord</a>
+                <a href="{% url 'client_list' %}"><i class="fa-solid fa-users me-2"></i> Clients</a>
+                <a href="{% url 'vehicule_list' %}"><i class="fa-solid fa-car me-2"></i> Véhicules</a>
+                <a href="{% url 'reparation_list' %}" class="active"><i class="fa-solid fa-wrench me-2"></i> Réparations</a>
+                <a href="/admin/" target="_blank"><i class="fa-solid fa-user-shield me-2"></i> Admin Django</a>
+            </nav>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fa-solid fa-wrench text-warning me-2"></i>Gestion des Réparations</h2>
+                <button class="btn btn-warning text-white" data-bs-toggle="modal" data-bs-target="#addReparationModal">
+                    <i class="fa-solid fa-plus me-2"></i>Nouvelle Réparation
+                </button>
+            </div>
+
+            <!-- RECHERCHE ET FILTRES -->
+            <div class="card p-3 shadow-sm mb-4">
+                <form method="GET" class="row g-2">
+                    <div class="col-md-7">
+                        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Rechercher par description, immatriculation, client...">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="statut" class="form-select">
+                            <option value="">Tous les statuts</option>
+                            <option value="EN_ATTENTE" {% if statut == 'EN_ATTENTE' %}selected{% endif %}>En attente</option>
+                            <option value="EN_COURS" {% if statut == 'EN_COURS' %}selected{% endif %}>En cours</option>
+                            <option value="TERMINE" {% if statut == 'TERMINE' %}selected{% endif %}>Terminé</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-secondary w-100"><i class="fa-solid fa-filter me-2"></i>Filtrer</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABLEAU DES RÉPARATIONS -->
+            <div class="card shadow-sm p-3">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Véhicule</th>
+                            <th>Description</th>
+                            <th>Coût</th>
+                            <th>Statut</th>
+                            <th class="text-center">Actions & PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reparations %}
+                        <tr>
+                            <td>#{{ r.id }}</td>
+                            <td>
+                                <strong>{{ r.vehicule.marque }} {{ r.vehicule.modele }}</strong><br>
+                                <small class="text-muted">{{ r.vehicule.immatriculation }}</small>
+                            </td>
+                            <td>{{ r.description|truncatewords:8 }}</td>
+                            <td><strong>{{ r.cout }} €</strong></td>
+                            <td>
+                                {% if r.statut == 'TERMINE' %}
+                                    <span class="badge bg-success">Terminé</span>
+                                {% elif r.statut == 'EN_COURS' %}
+                                    <span class="badge bg-warning text-dark">En cours</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">En attente</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'reparation_detail' r.id %}" class="btn btn-sm btn-info text-white" title="Voir">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="{% url 'reparation_update' r.id %}" class="btn btn-sm btn-warning text-white" title="Modifier">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a href="{% url 'reparation_delete' r.id %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                                {% if r.factures.first %}
+                                <a href="{% url 'facture_pdf' r.factures.first.id %}" class="btn btn-sm btn-dark" title="Télécharger PDF">
+                                    <i class="fa-solid fa-file-pdf text-danger"></i> PDF
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Aucune réparation trouvée.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- PAGINATION (5 PAR PAGE) -->
+                {% if reparations.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if reparations.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ reparations.previous_page_number }}&q={{ query }}&statut={{ statut }}">Précédent</a></li>
+                        {% endif %}
+
+                        {% for i in reparations.paginator.page_range %}
+                            {% if reparations.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}&q={{ query }}&statut={{ statut }}">{{ i }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if reparations.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ reparations.next_page_number }}&q={{ query }}&statut={{ statut }}">Suivant</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODALE AJOUT RÉPARATION -->
+<div class="modal fade" id="addReparationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'reparation_create' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter une Réparation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning text-white">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
