@@ -2,12 +2,15 @@ import io
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.template.loader import get_template
+from django.db.models import Count, Q
+from django.core.paginator import Paginator
 from xhtml2pdf import pisa
 
 from .models import Reparation, Client, Vehicule, Facture
 from .forms import ClientForm, VehiculeForm, ReparationForm
 
 
+# --- TABLEAU DE BORD ---
 def index(request):
     if request.method == 'POST':
         if 'add_client' in request.POST:
@@ -26,14 +29,27 @@ def index(request):
                 form.save()
                 return redirect('index')
 
-    reparations = Reparation.objects.all().select_related('vehicule')
-    clients = Client.objects.all()
-    vehicules = Vehicule.objects.all()
+    total_clients = Client.objects.count()
+    total_vehicules = Vehicule.objects.count()
+    total_reparations = Reparation.objects.count()
+
+    clients_recents = Client.objects.order_by('-id')[:3]
+    vehicules_recents = Vehicule.objects.order_by('-id')[:3]
+    reparations_recentes = Reparation.objects.select_related('vehicule').order_by('-id')[:3]
+
+    stats_statut = Reparation.objects.values('statut').annotate(total=Count('id'))
+    statut_counts = {'EN_ATTENTE': 0, 'EN_COURS': 0, 'TERMINE': 0}
+    for item in stats_statut:
+        statut_counts[item['statut']] = item['total']
 
     context = {
-        'reparations': reparations,
-        'total_clients': clients.count(),
-        'total_vehicules': vehicules.count(),
+        'total_clients': total_clients,
+        'total_vehicules': total_vehicules,
+        'total_reparations': total_reparations,
+        'clients_recents': clients_recents,
+        'vehicules_recents': vehicules_recents,
+        'reparations_recentes': reparations_recentes,
+        'statut_counts': statut_counts,
         'client_form': ClientForm(),
         'vehicule_form': VehiculeForm(),
         'reparation_form': ReparationForm(),
@@ -41,10 +57,73 @@ def index(request):
     return render(request, 'garage/index.html', context)
 
 
-# -------------------------------------------------------------------
-# NOUVELLE VUE : GÉNÉRATION DU PDF DE FACTURE / DEVIS
-# -------------------------------------------------------------------
+# --- MODULE CLIENTS (CRUD, RECHERCHE, PAGINATION) ---
+def client_list(request):
+    query = request.GET.get('q', '')
+    if query:
+        clients_all = Client.objects.filter(
+            Q(nom__icontains=query) | 
+            Q(prenom__icontains=query) | 
+            Q(telephone__icontains=query) | 
+            Q(email__icontains=query)
+        ).order_by('-id')
+    else:
+        clients_all = Client.objects.all().order_by('-id')
 
+    # Pagination : 5 clients par page
+    paginator = Paginator(clients_all, 5)
+    page_number = request.GET.get('page')
+    clients = paginator.get_page(page_number)
+
+    form = ClientForm()
+    context = {
+        'clients': clients,
+        'query': query,
+        'form': form,
+    }
+    return render(request, 'garage/client_list.html', context)
+
+
+def client_create(request):
+    if request.method == 'POST':
+        form = ClientForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('client_list')
+    return redirect('client_list')
+
+
+def client_detail(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    vehicules = client.vehicules.all()
+    context = {
+        'client': client,
+        'vehicules': vehicules,
+    }
+    return render(request, 'garage/client_detail.html', context)
+
+
+def client_update(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    if request.method == 'POST':
+        form = ClientForm(request.POST, instance=client)
+        if form.is_valid():
+            form.save()
+            return redirect('client_list')
+    else:
+        form = ClientForm(instance=client)
+    return render(request, 'garage/client_form.html', {'form': form, 'client': client})
+
+
+def client_delete(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    if request.method == 'POST':
+        client.delete()
+        return redirect('client_list')
+    return render(request, 'garage/client_confirm_delete.html', {'client': client})
+
+
+# --- VUE FACTURE PDF ---
 def generer_facture_pdf(request, facture_id):
     facture = get_object_or_404(Facture, id=facture_id)
     template = get_template('garage/facture_pdf.html')

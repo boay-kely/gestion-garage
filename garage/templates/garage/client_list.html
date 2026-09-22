@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garage Pro - Gestion Clients</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+        .sidebar { min-height: 100vh; background-color: #1e293b; color: #fff; }
+        .sidebar a { color: #cbd5e1; text-decoration: none; padding: 12px 20px; display: block; border-radius: 6px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: #334155; color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- SIDEBAR -->
+        <div class="col-md-3 col-lg-2 sidebar p-3">
+            <h4 class="text-white text-center mb-4"><i class="fa-solid fa-gauge-high me-2"></i>Garage Pro</h4>
+            <hr class="text-secondary">
+            <nav>
+                <a href="{% url 'index' %}"><i class="fa-solid fa-chart-line me-2"></i> Tableau de bord</a>
+                <a href="{% url 'client_list' %}" class="active"><i class="fa-solid fa-users me-2"></i> Clients</a>
+                <a href="#"><i class="fa-solid fa-car me-2"></i> Véhicules</a>
+                <a href="#"><i class="fa-solid fa-wrench me-2"></i> Réparations</a>
+                <a href="/admin/" target="_blank"><i class="fa-solid fa-user-shield me-2"></i> Admin Django</a>
+            </nav>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fa-solid fa-users text-primary me-2"></i>Gestion des Clients</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                    <i class="fa-solid fa-plus me-2"></i>Nouveau Client
+                </button>
+            </div>
+
+            <!-- RECHERCHE -->
+            <div class="card p-3 shadow-sm mb-4">
+                <form method="GET" class="row g-2">
+                    <div class="col-md-10">
+                        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Rechercher par nom, prénom, téléphone ou email...">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-secondary w-100"><i class="fa-solid fa-magnifying-glass me-2"></i>Rechercher</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABLEAU DES CLIENTS -->
+            <div class="card shadow-sm p-3">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Téléphone</th>
+                            <th>Email</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for client in clients %}
+                        <tr>
+                            <td><strong>{{ client.nom }}</strong></td>
+                            <td>{{ client.prenom }}</td>
+                            <td>{{ client.telephone }}</td>
+                            <td>{{ client.email|default:"-" }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'client_detail' client.id %}" class="btn btn-sm btn-info text-white" title="Voir">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="{% url 'client_update' client.id %}" class="btn btn-sm btn-warning text-white" title="Modifier">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a href="{% url 'client_delete' client.id %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Aucun client trouvé.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- PAGINATION (5 PAR PAGE) -->
+                {% if clients.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if clients.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ clients.previous_page_number }}&q={{ query }}">Précédent</a></li>
+                        {% endif %}
+
+                        {% for i in clients.paginator.page_range %}
+                            {% if clients.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}&q={{ query }}">{{ i }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if clients.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ clients.next_page_number }}&q={{ query }}">Suivant</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODALE AJOUT CLIENT -->
+<div class="modal fade" id="addClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'client_create' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter un Client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
