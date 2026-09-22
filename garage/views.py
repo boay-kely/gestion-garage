@@ -57,7 +57,7 @@ def index(request):
     return render(request, 'garage/index.html', context)
 
 
-# --- MODULE CLIENTS (CRUD, RECHERCHE, PAGINATION) ---
+# --- MODULE CLIENTS ---
 def client_list(request):
     query = request.GET.get('q', '')
     if query:
@@ -70,16 +70,14 @@ def client_list(request):
     else:
         clients_all = Client.objects.all().order_by('-id')
 
-    # Pagination : 5 clients par page
     paginator = Paginator(clients_all, 5)
     page_number = request.GET.get('page')
     clients = paginator.get_page(page_number)
 
-    form = ClientForm()
     context = {
         'clients': clients,
         'query': query,
-        'form': form,
+        'form': ClientForm(),
     }
     return render(request, 'garage/client_list.html', context)
 
@@ -96,11 +94,7 @@ def client_create(request):
 def client_detail(request, pk):
     client = get_object_or_404(Client, pk=pk)
     vehicules = client.vehicules.all()
-    context = {
-        'client': client,
-        'vehicules': vehicules,
-    }
-    return render(request, 'garage/client_detail.html', context)
+    return render(request, 'garage/client_detail.html', {'client': client, 'vehicules': vehicules})
 
 
 def client_update(request, pk):
@@ -121,6 +115,68 @@ def client_delete(request, pk):
         client.delete()
         return redirect('client_list')
     return render(request, 'garage/client_confirm_delete.html', {'client': client})
+
+
+# --- MODULE VÉHICULES (CRUD, RECHERCHE, PAGINATION) ---
+def vehicule_list(request):
+    query = request.GET.get('q', '')
+    if query:
+        vehicules_all = Vehicule.objects.select_related('client').filter(
+            Q(immatriculation__icontains=query) | 
+            Q(marque__icontains=query) | 
+            Q(modele__icontains=query) | 
+            Q(client__nom__icontains=query) | 
+            Q(client__prenom__icontains=query)
+        ).order_by('-id')
+    else:
+        vehicules_all = Vehicule.objects.select_related('client').all().order_by('-id')
+
+    # Pagination : 5 véhicules par page
+    paginator = Paginator(vehicules_all, 5)
+    page_number = request.GET.get('page')
+    vehicules = paginator.get_page(page_number)
+
+    context = {
+        'vehicules': vehicules,
+        'query': query,
+        'form': VehiculeForm(),
+    }
+    return render(request, 'garage/vehicule_list.html', context)
+
+
+def vehicule_create(request):
+    if request.method == 'POST':
+        form = VehiculeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('vehicule_list')
+    return redirect('vehicule_list')
+
+
+def vehicule_detail(request, pk):
+    vehicule = get_object_or_404(Vehicule, pk=pk)
+    reparations = Reparation.objects.filter(vehicule=vehicule).order_by('-id')
+    return render(request, 'garage/vehicule_detail.html', {'vehicule': vehicule, 'reparations': reparations})
+
+
+def vehicule_update(request, pk):
+    vehicule = get_object_or_404(Vehicule, pk=pk)
+    if request.method == 'POST':
+        form = VehiculeForm(request.POST, instance=vehicule)
+        if form.is_valid():
+            form.save()
+            return redirect('vehicule_list')
+    else:
+        form = VehiculeForm(instance=vehicule)
+    return render(request, 'garage/vehicule_form.html', {'form': form, 'vehicule': vehicule})
+
+
+def vehicule_delete(request, pk):
+    vehicule = get_object_or_404(Vehicule, pk=pk)
+    if request.method == 'POST':
+        vehicule.delete()
+        return redirect('vehicule_list')
+    return render(request, 'garage/vehicule_confirm_delete.html', {'vehicule': vehicule})
 
 
 # --- VUE FACTURE PDF ---

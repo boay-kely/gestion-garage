@@ -11,6 +11,13 @@ urlpatterns = [
     path('clients/<int:pk>/modifier/', views.client_update, name='client_update'),
     path('clients/<int:pk>/supprimer/', views.client_delete, name='client_delete'),
     
+    # Vehicule URLs
+    path('vehicules/', views.vehicule_list, name='vehicule_list'),
+    path('vehicules/creer/', views.vehicule_create, name='vehicule_create'),
+    path('vehicules/<int:pk>/', views.vehicule_detail, name='vehicule_detail'),
+    path('vehicules/<int:pk>/modifier/', views.vehicule_update, name='vehicule_update'),
+    path('vehicules/<int:pk>/supprimer/', views.vehicule_delete, name='vehicule_delete'),
+    
     # Facture PDF URL
     path('facture/<int:facture_id>/pdf/', views.generer_facture_pdf, name='facture_pdf'),
 ]

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8"><title>Détails Véhicule</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="p-4 bg-light">
+<div class="container">
+    <div class="card shadow p-4">
+        <h2><i class="fa-solid fa-car me-2"></i>{{ vehicule.marque }} {{ vehicule.modele }} ({{ vehicule.immatriculation }})</h2>
+        <p><strong>Année :</strong> {{ vehicule.annee }}</p>
+        <p><strong>Propriétaire :</strong> {{ vehicule.client.nom }} {{ vehicule.client.prenom }} ({{ vehicule.client.telephone }})</p>
+        <hr>
+        <h4>Historique des Réparations :</h4>
+        <ul>
+            {% for r in reparations %}
+            <li>Réparation #{{ r.id }} - {{ r.description }} | Statut : {{ r.get_statut_display }} | Coût : {{ r.cout }} €</li>
+            {% empty %}
+            <li>Aucune réparation enregistrée.</li>
+            {% endfor %}
+        </ul>
+        <a href="{% url 'vehicule_list' %}" class="btn btn-secondary mt-3">Retour à la liste</a>
+    </div>
+</div>
+</body>
+</html>
